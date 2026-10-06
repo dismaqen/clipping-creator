@@ -1,3 +1,17 @@
 "use client";
-import {useState} from "react"; import {supabase} from "../../lib/supabase";
-export default function Login(){const [email,setEmail]=useState("");const [sent,setSent]=useState(false);async function go(e:React.FormEvent){e.preventDefault();const {error}=await supabase.auth.signInWithOtp({email,options:{emailRedirectTo:location.origin+"/dashboard"}});if(error)alert(error.message);else setSent(true)}return <main className="wrap" style={{maxWidth:520}}><div className="card"><h1>Login Creator</h1>{sent?<div className="notice">Magic link sudah dikirim ke email lu.</div>:<form onSubmit={go}><label>Email</label><input required type="email" value={email} onChange={e=>setEmail(e.target.value)}/><button className="btn">Kirim Magic Link</button></form>}</div></main>}
+import { useState } from "react";
+import { getSupabase } from "../../lib/supabase";
+
+export default function Login(){
+  const [email,setEmail]=useState("");
+  const [sent,setSent]=useState(false);
+  async function go(e:React.FormEvent){
+    e.preventDefault();
+    try {
+      const supabase=getSupabase();
+      const {error}=await supabase.auth.signInWithOtp({email,options:{emailRedirectTo:location.origin+"/dashboard"}});
+      if(error) alert(error.message); else setSent(true);
+    } catch (error) { alert(error instanceof Error ? error.message : "Supabase belum dikonfigurasi."); }
+  }
+  return <main className="wrap" style={{maxWidth:520}}><div className="card"><h1>Login Creator</h1>{sent?<div className="notice">Magic link sudah dikirim ke email lu.</div>:<form onSubmit={go}><label>Email</label><input required type="email" value={email} onChange={e=>setEmail(e.target.value)}/><button className="btn">Kirim Magic Link</button></form>}</div></main>
+}
