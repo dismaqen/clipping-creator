@@ -1,0 +1,18 @@
+create extension if not exists pgcrypto;
+create type public.user_role as enum ('creator','campaign_owner','admin');
+create type public.submission_status as enum ('pending','approved','rejected');
+create type public.payout_status as enum ('pending','paid','rejected');
+create table if not exists public.profiles (id uuid primary key references auth.users(id) on delete cascade, username text unique, display_name text, role public.user_role default 'creator', balance bigint default 0, created_at timestamptz default now());
+create table if not exists public.campaigns (id uuid primary key default gen_random_uuid(), owner_id uuid references public.profiles(id), title text not null, description text, platform text not null check(platform in ('TikTok','Instagram Reels','YouTube Shorts','Semua')), reward_per_1k bigint not null default 0, max_views_per_creator bigint default 1000000, budget bigint default 0, rules text, active boolean default true, created_at timestamptz default now());
+create table if not exists public.submissions (id uuid primary key default gen_random_uuid(), campaign_id uuid references public.campaigns(id) on delete cascade, creator_id uuid references public.profiles(id) on delete cascade, post_url text not null, platform text not null, status public.submission_status default 'pending', approved_views bigint default 0, reward_amount bigint default 0, note text, last_view_check timestamptz, created_at timestamptz default now(), unique(campaign_id,creator_id,post_url));
+create table if not exists public.view_snapshots (id uuid primary key default gen_random_uuid(), submission_id uuid references public.submissions(id) on delete cascade, views bigint not null, source text not null, checked_at timestamptz default now());
+create table if not exists public.payouts (id uuid primary key default gen_random_uuid(), creator_id uuid references public.profiles(id), amount bigint not null, method text not null, account_detail text not null, status public.payout_status default 'pending', created_at timestamptz default now(), paid_at timestamptz);
+alter table public.profiles enable row level security; alter table public.campaigns enable row level security; alter table public.submissions enable row level security; alter table public.view_snapshots enable row level security; alter table public.payouts enable row level security;
+create policy "profiles own read" on public.profiles for select using (auth.uid()=id);
+create policy "campaigns public active read" on public.campaigns for select using (active=true);
+create policy "creator own submissions" on public.submissions for select using (auth.uid()=creator_id);
+create policy "creator insert submissions" on public.submissions for insert with check (auth.uid()=creator_id);
+create policy "creator own payouts" on public.payouts for select using (auth.uid()=creator_id);
+create policy "creator insert payouts" on public.payouts for insert with check (auth.uid()=creator_id);
+create or replace function public.handle_new_user() returns trigger language plpgsql security definer as $$ begin insert into public.profiles(id,display_name) values(new.id,coalesce(new.raw_user_meta_data->>'name',split_part(new.email,'@',1))) on conflict(id) do nothing; return new; end; $$;
+drop trigger if exists on_auth_user_created on auth.users; create trigger on_auth_user_created after insert on auth.users for each row execute procedure public.handle_new_user();
