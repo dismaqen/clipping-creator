@@ -1,114 +1,12 @@
 "use client";
-import Link from "next/link";
-import { useEffect, useState } from "react";
-import { getSupabase } from "../../lib/supabase";
-
-const money = (n:number) => "Rp" + Number(n || 0).toLocaleString("id-ID");
-
-export default function Owner() {
-  const [user,setUser] = useState<any>(null);
-  const [rows,setRows] = useState<any[]>([]);
-  const [balance,setBalance] = useState(0);
-  const [msg,setMsg] = useState("");
-  const [f,setF] = useState<any>({
-    title:"",platform:"TikTok",rate:"",budget:"",description:"",rules:"",
-    hashtags:"",tags:"",min:"0",max:"1000000",durationMin:"",durationMax:"",
-    hook:"",objective:"",doRules:"",dontRules:"",assets:""
-  });
-  const set = (k:string,v:any) => setF((x:any)=>({...x,[k]:v}));
-
-  async function load() {
-    const s=getSupabase();
-    const {data:{user}}=await s.auth.getUser();
-    setUser(user);
-    if(!user) return;
-    const [c,w]=await Promise.all([
-      s.from("campaigns").select("*").eq("owner_id",user.id).order("created_at",{ascending:false}),
-      s.from("campaign_wallets").select("balance").eq("owner_id",user.id).maybeSingle()
-    ]);
-    setRows(c.data||[]);
-    setBalance(w.data?.balance||0);
-  }
-
-  useEffect(()=>{ load(); },[]);
-
-  async function save(e:React.FormEvent) {
-    e.preventDefault();
-    setMsg("");
-    if(!user) return;
-    const budget=Number(f.budget)||0;
-    const rate=Number(f.rate)||0;
-    const x={
-      owner_id:user.id,title:f.title,description:f.description,platform:f.platform,
-      reward_per_1k:rate,budget,rules:f.rules,required_hashtags:f.hashtags,
-      required_tags:f.tags,min_views:Number(f.min)||0,max_paid_views:Number(f.max)||1000000,
-      cpm_tiktok:f.platform==="TikTok"||f.platform==="Semua"?rate:null,
-      cpm_instagram:f.platform==="Instagram Reels"||f.platform==="Semua"?rate:null,
-      cpm_youtube:f.platform==="YouTube Shorts"||f.platform==="Semua"?rate:null,
-      content_duration_min:Number(f.durationMin)||null,
-      content_duration_max:Number(f.durationMax)||null,
-      hook_script:f.hook,objective:f.objective,do_rules:f.doRules,
-      dont_rules:f.dontRules,source_assets:f.assets,remaining_budget:budget,
-      active:false,status:"pending_review"
-    };
-    const {error}=await getSupabase().from("campaigns").insert(x);
-    if(error) {
-      setMsg(error.message);
-      return;
-    }
-    setMsg("Campaign diajukan ke admin.");
-    setF({title:"",platform:"TikTok",rate:"",budget:"",description:"",rules:"",hashtags:"",tags:"",min:"0",max:"1000000",durationMin:"",durationMax:"",hook:"",objective:"",doRules:"",dontRules:"",assets:""});
-    load();
-  }
-
-  return (
-    <main className="wrap owner-page" style={{maxWidth:1120}}>
-      <section className="hero brand-workspace-hero">
-        <div className="eyebrow">BRAND STUDIO</div>
-        <h1>Brand Dashboard</h1>
-        <p className="hero-copy">Kelola campaign, budget, creator, submission, dan performa dari satu workspace.</p>
-        <div className="hero-actions">
-          <Link className="btn" href="/owner/campaigns">Campaigns</Link>
-          <Link className="btn" href="/owner/analytics">Analytics</Link>
-          <Link className="btn" href="/owner/submissions">Submissions</Link>
-        </div>
-      </section>
-      <div className="grid owner-stats">
-        <div className="card"><span className="muted">Campaign wallet</span><div className="big">{money(balance)}</div></div>
-        <div className="card"><span className="muted">Campaign</span><div className="big">{rows.length}</div></div>
-        <div className="card"><span className="muted">Live</span><div className="big">{rows.filter(x=>x.active).length}</div></div>
-      </div>
-      <div className="card brand-builder-card" id="new-campaign">
-        <div className="eyebrow">CAMPAIGN BUILDER</div>
-        <h2>Create Campaign</h2>
-        <form onSubmit={save}>
-          <label>Nama campaign</label><input required value={f.title} onChange={e=>set("title",e.target.value)}/>
-          <label>Brief</label><textarea value={f.description} onChange={e=>set("description",e.target.value)}/>
-          <div className="grid">
-            <div><label>Platform</label><select value={f.platform} onChange={e=>set("platform",e.target.value)}><option>TikTok</option><option>Instagram Reels</option><option>YouTube Shorts</option><option>Semua</option></select></div>
-            <div><label>CPM / 1K views</label><input required type="number" min="1" value={f.rate} onChange={e=>set("rate",e.target.value)}/></div>
-            <div><label>Budget</label><input required type="number" min="1" value={f.budget} onChange={e=>set("budget",e.target.value)}/></div>
-          </div>
-          <div className="grid">
-            <div><label>Minimum views</label><input type="number" min="0" value={f.min} onChange={e=>set("min",e.target.value)}/></div>
-            <div><label>Maximum paid views</label><input type="number" min="1" value={f.max} onChange={e=>set("max",e.target.value)}/></div>
-            <div><label>Hashtag wajib</label><input value={f.hashtags} onChange={e=>set("hashtags",e.target.value)} placeholder="#brand #campaign"/></div>
-          </div>
-          <label>Tags / mention</label><input value={f.tags} onChange={e=>set("tags",e.target.value)}/>
-          <label>Hook / Script</label><textarea value={f.hook} onChange={e=>set("hook",e.target.value)}/>
-          <label>Objective / CTA</label><textarea value={f.objective} onChange={e=>set("objective",e.target.value)}/>
-          <div className="grid">
-            <div><label>Durasi min (detik)</label><input type="number" min="0" value={f.durationMin} onChange={e=>set("durationMin",e.target.value)}/></div>
-            <div><label>Durasi max (detik)</label><input type="number" min="0" value={f.durationMax} onChange={e=>set("durationMax",e.target.value)}/></div>
-          </div>
-          <label>Do</label><textarea value={f.doRules} onChange={e=>set("doRules",e.target.value)}/>
-          <label>Don't</label><textarea value={f.dontRules} onChange={e=>set("dontRules",e.target.value)}/>
-          <label>Source assets</label><textarea value={f.assets} onChange={e=>set("assets",e.target.value)} placeholder="Link folder/asset URL"/>
-          <label>Rules tambahan</label><textarea value={f.rules} onChange={e=>set("rules",e.target.value)}/>
-          <button className="btn" type="submit">Submit Campaign for Review</button>
-        </form>
-      </div>
-      {msg && <p className="notice">{msg}</p>}
-    </main>
-  );
-}
+import Link from"next/link";import{useEffect,useState}from"react";import{getSupabase}from"../../lib/supabase";
+const money=(n:number)=>"Rp"+Number(n||0).toLocaleString("id-ID");
+export default function Owner(){const[user,setUser]=useState<any>(null);const[rows,setRows]=useState<any[]>([]);const[balance,setBalance]=useState(0);const[topup,setTopup]=useState("");const[method,setMethod]=useState("Bank Transfer");const[msg,setMsg]=useState("");const[f,setF]=useState<any>({title:"",platform:"TikTok",rate:"",budget:"",description:"",rules:"",hashtags:"",tags:"",min:"0",max:"1000000",durationMin:"",durationMax:"",hook:"",objective:"",doRules:"",dontRules:"",assets:""});const set=(k:string,v:any)=>setF((x:any)=>({...x,[k]:v}));
+async function load(){const s=getSupabase();const{data:{user}}=await s.auth.getUser();setUser(user);if(!user)return;const[c,w]=await Promise.all([s.from("campaigns").select("*").eq("owner_id",user.id).order("created_at",{ascending:false}),s.from("campaign_wallets").select("balance").eq("owner_id",user.id).maybeSingle()]);setRows(c.data||[]);setBalance(w.data?.balance||0)}
+useEffect(()=>{load()},[]);
+async function fund(e:React.FormEvent){e.preventDefault();setMsg("");const amount=Number(topup);if(amount<=0)return setMsg("Nominal top up tidak valid.");const{data,error}=await getSupabase().rpc("create_campaign_topup",{p_amount:amount,p_method:method});if(error)setMsg(error.message);else{setMsg("Top up dibuat. ID transaksi: "+data+". Setelah pembayaran diverifikasi admin, saldo campaign wallet masuk.");setTopup("");}}
+async function save(e:React.FormEvent){e.preventDefault();setMsg("");if(!user)return;const budget=Number(f.budget)||0,rate=Number(f.rate)||0;const x={owner_id:user.id,title:f.title,description:f.description,platform:f.platform,reward_per_1k:rate,budget,rules:f.rules,required_hashtags:f.hashtags,required_tags:f.tags,min_views:Number(f.min)||0,max_paid_views:Number(f.max)||1000000,cpm_tiktok:f.platform==="TikTok"||f.platform==="Semua"?rate:null,cpm_instagram:f.platform==="Instagram Reels"||f.platform==="Semua"?rate:null,cpm_youtube:f.platform==="YouTube Shorts"||f.platform==="Semua"?rate:null,content_duration_min:Number(f.durationMin)||null,content_duration_max:Number(f.durationMax)||null,hook_script:f.hook,objective:f.objective,do_rules:f.doRules,dont_rules:f.dontRules,source_assets:f.assets,remaining_budget:budget,active:false,status:"pending_review"};const{error}=await getSupabase().from("campaigns").insert(x);if(error)setMsg(error.message);else{setMsg("Campaign diajukan ke admin.");setF({title:"",platform:"TikTok",rate:"",budget:"",description:"",rules:"",hashtags:"",tags:"",min:"0",max:"1000000",durationMin:"",durationMax:"",hook:"",objective:"",doRules:"",dontRules:"",assets:""});load()}}
+return <main className="wrap owner-page" style={{maxWidth:1120}}><section className="hero brand-workspace-hero"><div className="eyebrow">BRAND STUDIO</div><h1>Brand Dashboard</h1><p className="hero-copy">Kelola campaign, budget, creator, submission, dan performa dari satu workspace.</p><div className="hero-actions"><Link className="btn" href="/owner/campaigns">Campaigns</Link><Link className="btn" href="/owner/analytics">Analytics</Link><Link className="btn" href="/owner/submissions">Submissions</Link></div></section>
+<div className="grid owner-stats"><div className="card"><span className="muted">Campaign wallet</span><div className="big">{money(balance)}</div></div><div className="card"><span className="muted">Campaign</span><div className="big">{rows.length}</div></div><div className="card"><span className="muted">Live</span><div className="big">{rows.filter(x=>x.active).length}</div></div></div>
+<div className="card"><div className="eyebrow">FUNDING</div><h2>Top Up Campaign Wallet</h2><p className="muted">Top up dibuat sebagai transaksi pending. Admin memverifikasi pembayaran sebelum saldo bisa dipakai mengaktifkan campaign.</p><form onSubmit={fund}><div className="grid"><div><label>Nominal</label><input required type="number" min="1" value={topup} onChange={e=>setTopup(e.target.value)}/></div><div><label>Metode</label><select value={method} onChange={e=>setMethod(e.target.value)}><option>Bank Transfer</option><option>QRIS</option><option>ShopeePay</option></select></div></div><button className="btn">Buat Instruksi Top Up</button></form></div>
+<div className="card brand-builder-card" id="new-campaign"><div className="eyebrow">CAMPAIGN BUILDER</div><h2>Create Campaign</h2><form onSubmit={save}><label>Nama campaign</label><input required value={f.title} onChange={e=>set("title",e.target.value)}/><label>Brief</label><textarea value={f.description} onChange={e=>set("description",e.target.value)}/><div className="grid"><div><label>Platform</label><select value={f.platform} onChange={e=>set("platform",e.target.value)}><option>TikTok</option><option>Instagram Reels</option><option>YouTube Shorts</option><option>Semua</option></select></div><div><label>CPM / 1K views</label><input required type="number" min="1" value={f.rate} onChange={e=>set("rate",e.target.value)}/></div><div><label>Budget</label><input required type="number" min="1" value={f.budget} onChange={e=>set("budget",e.target.value)}/></div></div><div className="grid"><div><label>Minimum views</label><input type="number" min="0" value={f.min} onChange={e=>set("min",e.target.value)}/></div><div><label>Maximum paid views</label><input type="number" min="1" value={f.max} onChange={e=>set("max",e.target.value)}/></div><div><label>Hashtag wajib</label><input value={f.hashtags} onChange={e=>set("hashtags",e.target.value)}/></div></div><label>Tags / mention</label><input value={f.tags} onChange={e=>set("tags",e.target.value)}/><label>Hook / Script</label><textarea value={f.hook} onChange={e=>set("hook",e.target.value)}/><label>Objective / CTA</label><textarea value={f.objective} onChange={e=>set("objective",e.target.value)}/><div className="grid"><div><label>Durasi min</label><input type="number" min="0" value={f.durationMin} onChange={e=>set("durationMin",e.target.value)}/></div><div><label>Durasi max</label><input type="number" min="0" value={f.durationMax} onChange={e=>set("durationMax",e.target.value)}/></div></div><label>Do</label><textarea value={f.doRules} onChange={e=>set("doRules",e.target.value)}/><label>Don't</label><textarea value={f.dontRules} onChange={e=>set("dontRules",e.target.value)}/><label>Source assets</label><textarea value={f.assets} onChange={e=>set("assets",e.target.value)}/><label>Rules tambahan</label><textarea value={f.rules} onChange={e=>set("rules",e.target.value)}/><button className="btn">Submit Campaign for Review</button></form></div>{msg&&<p className="notice">{msg}</p>}</main>}
