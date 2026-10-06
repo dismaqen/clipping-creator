@@ -1,3 +1,13 @@
+"use client";
 import Link from "next/link";
-const demo=[{title:"Shorts Podcast — Batch 01",platform:"YouTube Shorts",rate:2500,budget:5000000,rules:"Clip 20–60 detik. Tambahkan subtitle. Jangan reupload watermark platform lain."},{title:"Reels Creator — Batch 01",platform:"Instagram Reels",rate:2000,budget:3000000,rules:"Gunakan footage yang disediakan campaign. Hook harus jelas."},{title:"TikTok Clips — Batch 01",platform:"TikTok",rate:2000,budget:3000000,rules:"Video vertikal 9:16. Tidak boleh misleading."}];
-export default function Campaigns(){return <main className="wrap"><h1>Campaign Aktif</h1><div className="grid">{demo.map((c,i)=><div className="card" key={i}><span className="tag">{c.platform}</span><h2>{c.title}</h2><p><b>Rp{c.rate.toLocaleString("id-ID")}</b> / 1.000 views</p><p className="muted">Budget Rp{c.budget.toLocaleString("id-ID")}</p><p className="muted">{c.rules}</p><Link className="btn" href={"/submit?campaign="+encodeURIComponent(c.title)}>Ambil & Submit</Link></div>)}</div></main>}
+import { useEffect, useState } from "react";
+import { getSupabase } from "../../lib/supabase";
+
+type Campaign={id:string;title:string;platform:string;reward_per_1k:number;budget:number;rules:string|null};
+export default function Campaigns(){
+  const [rows,setRows]=useState<Campaign[]>([]);
+  const [loading,setLoading]=useState(true);
+  const [error,setError]=useState("");
+  useEffect(()=>{(async()=>{const {data,error}=await getSupabase().from("campaigns").select("id,title,platform,reward_per_1k,budget,rules").eq("active",true).order("created_at",{ascending:false});if(error)setError(error.message);else setRows(data||[]);setLoading(false);})();},[]);
+  return <main className="wrap"><h1>Campaign Aktif</h1>{loading?<div className="card">Loading...</div>:error?<div className="notice">{error}</div>:rows.length===0?<div className="card"><p className="muted">Belum ada campaign aktif.</p></div>:<div className="grid">{rows.map(c=><div className="card" key={c.id}><span className="tag">{c.platform}</span><h2>{c.title}</h2><p><b>Rp{Number(c.reward_per_1k).toLocaleString("id-ID")}</b> / 1.000 views</p><p className="muted">Budget Rp{Number(c.budget).toLocaleString("id-ID")}</p><p className="muted">{c.rules||"Tidak ada aturan tambahan."}</p><Link className="btn" href={"/submit?campaign="+c.id}>Ambil & Submit</Link></div>)}</div>}</main>
+}
