@@ -1,0 +1,3 @@
+"use client";
+import {useState} from "react";
+export default function Payouts(){const [status,setStatus]=useState("pending");return <main className="wrap"><h1>Payout Requests</h1><div className="card"><table><thead><tr><th>Creator</th><th>Amount</th><th>Method</th><th>Status</th><th></th></tr></thead><tbody><tr><td>Creator Demo</td><td>Rp0</td><td>Bank</td><td>{status}</td><td><button className="btn" onClick={()=>setStatus("paid")}>Mark Paid</button></td></tr></tbody></table></div></main>}
