@@ -61,15 +61,13 @@ language plpgsql
 security definer
 set search_path = public
 as $$
-declare made boolean;
 begin
   if auth.uid() is null then raise exception 'login required'; end if;
   if exists(select 1 from public.profiles where role='admin') then
     return false;
   end if;
   update public.profiles set role='admin' where id=auth.uid();
-  get diagnostics made = row_count;
-  return made;
+  return found;
 end;
 $$;
 revoke all on function public.bootstrap_first_admin() from public;
