@@ -1,6 +1,7 @@
 "use client";
 
-import { Suspense, useSearchParams, useState } from "react";
+import { Suspense, useState } from "react";
+import { useSearchParams } from "next/navigation";
 
 function SubmitForm() {
   const q = useSearchParams();
@@ -26,18 +27,9 @@ function SubmitForm() {
             }}
           >
             <label>Link TikTok / Instagram / YouTube</label>
-            <input
-              required
-              placeholder="https://..."
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-            />
+            <input required placeholder="https://..." value={url} onChange={(e) => setUrl(e.target.value)} />
             <label>Catatan</label>
-            <textarea
-              placeholder="Opsional"
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-            />
+            <textarea placeholder="Opsional" value={note} onChange={(e) => setNote(e.target.value)} />
             <button className="btn">Kirim Submission</button>
           </form>
         )}
@@ -48,13 +40,7 @@ function SubmitForm() {
 
 export default function Submit() {
   return (
-    <Suspense
-      fallback={
-        <main className="wrap" style={{ maxWidth: 650 }}>
-          <div className="card">Loading...</div>
-        </main>
-      }
-    >
+    <Suspense fallback={<main className="wrap" style={{ maxWidth: 650 }}><div className="card">Loading...</div></main>}>
       <SubmitForm />
     </Suspense>
   );
