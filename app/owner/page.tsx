@@ -37,9 +37,9 @@ export default function Owner(){
  }
 
  return <main className="wrap owner-page" style={{maxWidth:1120}}>
-  <section className="hero owner-hero" style={{paddingBottom:35}}>
-   <div className="eyebrow">CAMPAIGN OWNER</div>
-   <h1>Kelola campaign &amp; budget.</h1>
+  <section className="hero owner-hero brand-workspace-hero" style={{paddingBottom:35}}>
+   <div className="eyebrow">BRAND STUDIO · CAMPAIGN OWNER</div>
+   <h1>Brand Studio</h1>
    <p className="hero-copy">Buat campaign, tentukan reward per 1.000 views, lalu isi saldo untuk membayar creator.</p>
   </section>
 
@@ -67,8 +67,8 @@ export default function Owner(){
     </div>
    </div>
 
-   <div className="card">
-    <div className="eyebrow">NEW CAMPAIGN</div><h2>Buat campaign</h2>
+   <div className="card brand-builder-card" id="new-campaign">
+    <div className="eyebrow">BRAND STUDIO · CAMPAIGN BUILDER</div><h2>Buat campaign</h2>
     <form onSubmit={save}>
      <label>Nama campaign</label><input required value={title} onChange={e=>setTitle(e.target.value)} placeholder="Contoh: Campaign Brand A"/>
      <label>Brief</label><textarea value={description} onChange={e=>setDescription(e.target.value)} placeholder="Jelaskan konten, angle, CTA, dan target."/>
