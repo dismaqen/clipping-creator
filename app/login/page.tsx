@@ -1,17 +1,32 @@
 "use client";
 import { useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { getSupabase } from "../../lib/supabase";
 
 export default function Login(){
   const [email,setEmail]=useState("");
-  const [sent,setSent]=useState(false);
+  const [password,setPassword]=useState("");
+  const [busy,setBusy]=useState(false);
+  const router=useRouter();
   async function go(e:React.FormEvent){
-    e.preventDefault();
+    e.preventDefault(); setBusy(true);
     try {
-      const supabase=getSupabase();
-      const {error}=await supabase.auth.signInWithOtp({email,options:{emailRedirectTo:location.origin+"/dashboard"}});
-      if(error) alert(error.message); else setSent(true);
-    } catch (error) { alert(error instanceof Error ? error.message : "Supabase belum dikonfigurasi."); }
+      const {error}=await getSupabase().auth.signInWithPassword({email,password});
+      if(error) alert(error.message); else router.push("/dashboard");
+    } catch(error){ alert(error instanceof Error?error.message:"Gagal login."); }
+    finally{setBusy(false);}
   }
-  return <main className="wrap" style={{maxWidth:520}}><div className="card"><h1>Login Creator</h1>{sent?<div className="notice">Magic link sudah dikirim ke email lu.</div>:<form onSubmit={go}><label>Email</label><input required type="email" value={email} onChange={e=>setEmail(e.target.value)}/><button className="btn">Kirim Magic Link</button></form>}</div></main>
+  return <main className="wrap" style={{maxWidth:520}}>
+    <div className="card">
+      <h1>Login Creator</h1>
+      <p className="muted">Masuk ke dashboard Clipping Creator.</p>
+      <form onSubmit={go}>
+        <label>Email</label><input required type="email" value={email} onChange={e=>setEmail(e.target.value)} />
+        <label>Password</label><input required minLength={6} type="password" value={password} onChange={e=>setPassword(e.target.value)} />
+        <button className="btn" disabled={busy}>{busy?"Memproses...":"Login"}</button>
+      </form>
+      <p className="muted">Belum punya akun? <Link href="/register">Daftar creator</Link></p>
+    </div>
+  </main>
 }
